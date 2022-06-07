@@ -1,6 +1,0 @@
-CREATE TABLE messages (
-  id SERIAL PRIMARY KEY,
-  sender VARCHAR NOT NULL,
-  body TEXT NOT NULL,
-  time_sent TIMESTAMP NOT NULL
-)

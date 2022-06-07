@@ -1,5 +1,5 @@
 [package]
-name = "rust_project"
+name = "barrage_slacker"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,7 +12,7 @@ env_logger = "0.9.0"
 chrono = "0.4.19"
 reqwest = { version = "0.11", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
-diesel = { version = "1.4.4", features = ["postgres", "chrono"] }
+diesel = { version = "1.4.4", features = ["postgres", "chrono", "r2d2"] }
 dotenv = "0.15.0"
 actix-files = "0.6.0"
 serde = {version = "1.0.137", features = ["derive"]}
