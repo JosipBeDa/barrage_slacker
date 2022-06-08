@@ -1,9 +1,17 @@
 table! {
+    channels (id) {
+        id -> Varchar,
+        channel_name -> Varchar,
+    }
+}
+
+table! {
     messages (id) {
-        id -> Int4,
+        id -> Varchar,
         sender -> Varchar,
-        body -> Text,
-        time_sent -> Timestamp,
+        body -> Varchar,
+        channel -> Varchar,
+        time_sent -> Timestamptz,
     }
 }
 
@@ -15,15 +23,8 @@ table! {
     }
 }
 
-table! {
-    channels (id) {
-        id -> Varchar,
-        channel_name -> Varchar,
-    }
-}
-
 allow_tables_to_appear_in_same_query!(
+    channels,
     messages,
     users,
-    channels
 );

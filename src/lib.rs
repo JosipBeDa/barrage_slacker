@@ -1,12 +1,7 @@
 use actix_web::{web, ResponseError};
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::Value;
 use std::fmt::Display;
-
-#[macro_use]
-extern crate diesel;
-extern crate dotenv;
-pub mod schema;
 
 /// A struct containing data we need to send slack to post a message.
 #[derive(Deserialize, Serialize, Debug)]
@@ -50,22 +45,59 @@ impl From<serde_json::Error> for CustomError {
     }
 }
 
-/// Helper for processing requests sent to slack. First we check if the request was sent successfully
-/// and throw a ReqwestError if something goes wrong. Slack sends a 200 OK response even when invalid data was sent,
+/// Helper for processing requests sent to slack. Slack sends a 200 OK response even when invalid data was sent,
 /// so we have to check the "ok" field of the json response if we want to handle it properly. Once that's done we try
-/// to extract the json from the body, if we fail we throw a SerdeError. Finally, if all went well, we send the result back
+/// to extract the json from the body, if we fail serde throws an error. Finally, if all went well, we send the result back
 /// to the actual handler.
-pub async fn process_response(
-    response: reqwest::Result<reqwest::Response>,
-) -> Result<web::Json<Value>, CustomError> {
-    match response {
-        Ok(res) => {
-            let json: Value = res.json().await?;
-            if json["ok"] == false {
-                return Err(CustomError::SlackJsonError(json));
-            }
-            Ok(web::Json(json))
-        }
-        Err(error) => Err(CustomError::ReqwestError(error)),
+pub async fn process_untyped(response: reqwest::Response) -> Result<web::Json<Value>, CustomError> {
+    let json: Value = response.json().await?;
+    if json["ok"] == false {
+        return Err(CustomError::SlackJsonError(json));
     }
+    Ok(web::Json(json))
+}
+
+// Since there's no way to check the 'ok' field of a typed response without it actually being true, serde will throw
+// an error if
+pub async fn process_typed<T: DeserializeOwned>(
+    response: reqwest::Response,
+) -> Result<T, CustomError> {
+    let json: T = response.json::<T>().await?;
+    Ok(json)
+}
+
+// Diesel functions // TO DO: Seperate this functionality to a seperate file
+#[macro_use]
+extern crate diesel;
+extern crate dotenv;
+use diesel::{PgConnection, RunQueryDsl};
+use models::message::{Message, NewMessage};
+use uuid::Uuid;
+
+pub mod models;
+pub mod schema;
+
+pub fn store_message<'a>(
+    conn: &PgConnection,
+    sender: &'a str,
+    body: &'a str,
+    channel: &'a str,
+) -> Message {
+    use crate::schema::messages;
+
+    let uuid = Uuid::new_v4().to_string();
+    let time_sent = chrono::offset::Utc::now();
+
+    let new_message = NewMessage {
+        id: &uuid,
+        sender,
+        body,
+        channel,
+        time_sent,
+    };
+
+    diesel::insert_into(messages::table)
+        .values(&new_message)
+        .get_result(conn)
+        .expect("Error saving message!")
 }

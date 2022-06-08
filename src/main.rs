@@ -12,8 +12,7 @@ async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
 
     //Initialize the application state containing the reqwest client and DB pool
-    let app_state = Data::new(state::app::initialize());
-
+    let app_state = Data::new(state::app::AppState::initialize());
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())

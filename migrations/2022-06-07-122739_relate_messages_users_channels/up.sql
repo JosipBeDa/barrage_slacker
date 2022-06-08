@@ -1,0 +1,2 @@
+-- ALTER TABLE messages ADD CONSTRAINT sender FOREIGN KEY ( sender ) REFERENCES users( id ) ON DELETE CASCADE;
+-- ALTER TABLE messages ADD CONSTRAINT channel FOREIGN KEY ( channel ) REFERENCES channels( id ) ON DELETE CASCADE;
