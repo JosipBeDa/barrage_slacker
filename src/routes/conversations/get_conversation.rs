@@ -1,7 +1,7 @@
 use crate::state::app::AppState;
 use actix_web::web;
-use barrage_slacker::models::slack_responses::SingleChannel;
-use barrage_slacker::{process_typed, CustomError};
+use crate::models::slack_responses::SingleChannel;
+use crate::error::{process_typed, CustomError};
 
 pub async fn handler(
     path: web::Path<String>,

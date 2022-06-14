@@ -1,10 +1,11 @@
 use crate::state::app::AppState;
 use actix_web::web;
 use crate::routes::{users};
-use barrage_slacker::{CustomError, register_user, fetch_slack_users, insert_slack_users, AuthData};
-use barrage_slacker::models::authenticable_users::AuthenticableUser;
+use crate::error::{CustomError};
+use crate::diesel_functions::{register_user, fetch_slack_users, insert_slack_users, AuthData};
+use crate::models::authenticable_users::AuthenticableUser;
 use bcrypt::{DEFAULT_COST, hash};
-use barrage_slacker::models::user::{NewUser};
+use crate::models::user::{NewUser};
 
 pub async fn handler (
     form: web::Form<AuthData>,

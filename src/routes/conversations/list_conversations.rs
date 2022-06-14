@@ -1,7 +1,7 @@
 use crate::state::app::AppState;
 use actix_web::web;
-use barrage_slacker::models::slack_responses::ChannelsList;
-use barrage_slacker::{process_typed, CustomError};
+use crate::models::slack_responses::ChannelsList;
+use crate::error::{process_typed, CustomError};
 
 pub async fn handler(
     state: web::Data<AppState>,

@@ -1,7 +1,8 @@
 use crate::state::app::AppState;
 use actix_web::web;
-use barrage_slacker::{CustomError, fetch_auth_user_by_username, AuthData};
-use barrage_slacker::models::authenticable_users::AuthenticableUser;
+use crate::error::{CustomError};
+use crate::models::authenticable_users::AuthenticableUser;
+use crate::diesel_functions::{fetch_auth_user_by_username, AuthData};
 use bcrypt::{verify};
 
 pub async fn handler (

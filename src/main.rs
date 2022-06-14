@@ -1,6 +1,18 @@
-mod application;
-mod routes;
-mod state;
+#[macro_use]
+extern crate diesel;
+extern crate bcrypt;
+extern crate dotenv;
+extern crate jsonwebtoken;
+
+pub mod application;
+pub mod routes;
+pub mod state;
+pub mod middleware;
+pub mod services;
+pub mod models;
+pub mod schema;
+pub mod error;
+pub mod diesel_functions;
 
 use actix_web::middleware::Logger;
 use actix_web::{web::Data, App, HttpServer};

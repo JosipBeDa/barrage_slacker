@@ -1,7 +1,9 @@
 use crate::state::app::AppState;
 use actix_web::web;
-use barrage_slacker::models::slack_responses::MessageSent;
-use barrage_slacker::{process_typed, store_message, CustomError, FormData};
+use crate::models::slack_responses::MessageSent;
+use crate::error::{CustomError, process_typed};
+use crate::diesel_functions::{store_message, FormData};
+
 
 ///Sends a message to the specified channel
 pub async fn handler(

@@ -1,7 +1,7 @@
 use crate::state::app::AppState;
 use actix_web::web;
-use barrage_slacker::models::slack_responses::UsersList;
-use barrage_slacker::{process_typed, CustomError};
+use crate::models::slack_responses::UsersList;
+use crate::error::{process_typed, CustomError};
 
 /// List all users
 pub async fn handler(state: web::Data<AppState>) -> Result<web::Json<UsersList>, CustomError> {

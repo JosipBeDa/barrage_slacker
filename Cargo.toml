@@ -19,3 +19,7 @@ serde = {version = "1.0.137", features = ["derive"]}
 serde_json = "1.0.81"
 uuid = {version ="1.1.1", features = ["v4"]}
 bcrypt = "0.13.0"
+futures-util = "0.3.21"
+actix-service = "2.0.2"
+futures = "0.3.21"
+jsonwebtoken = "8.1.0"

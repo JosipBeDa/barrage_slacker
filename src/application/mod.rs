@@ -1,11 +1,12 @@
 use crate::routes::{self, chat, conversations, users, auth};
 use actix_cors::Cors;
 use actix_web::{http, web};
+use crate::middleware::say_hi::SayHi;
 
 /// Returns the routing config
 pub fn setup_routes(cfg: &mut web::ServiceConfig) {
     // GET /
-    cfg.service(web::resource("/").route(web::get().to(routes::hello_world)));
+    cfg.service(web::resource("/").wrap(SayHi).route(web::get().to(routes::hello_world)));
     // GET /conversations
     cfg.service(
         web::resource("/conversations")
