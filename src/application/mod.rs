@@ -1,6 +1,6 @@
+use crate::routes::{self, chat, conversations, users, auth};
 use actix_cors::Cors;
 use actix_web::{http, web};
-use crate::routes::{self, chat, conversations, users};
 
 /// Returns the routing config
 pub fn setup_routes(cfg: &mut web::ServiceConfig) {
@@ -20,6 +20,10 @@ pub fn setup_routes(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource("/send_message").route(web::post().to(chat::send_message::handler)));
     // GET /users
     cfg.service(web::resource("/users").route(web::get().to(users::list_users::handler)));
+    // POST /register_user
+    cfg.service(web::resource("/register_user").route(web::post().to(auth::register_user::handler)));
+    // POST /login_user
+    cfg.service(web::resource("/login_user").route(web::post().to(auth::login_user::handler)));
 }
 
 /// Return cors configuration for the project

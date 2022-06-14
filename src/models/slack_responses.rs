@@ -55,17 +55,17 @@ pub struct TopicPurpose {
 }
 
 // users.list
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Queryable, Debug, Clone, Serialize, Deserialize)]
 pub struct UsersList {
-    members: Vec<SlackUser>,
+    pub members: Vec<SlackUser>,
 }
 
 // user object in the 'members' field of users.list
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Queryable,  Debug, Clone, Serialize, Deserialize)]
 pub struct SlackUser {
-    id: String,
+    pub id: String,
     is_admin: bool,
-    name: String,
+    pub name: String,
     real_name: String,
 }
 

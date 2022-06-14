@@ -13,7 +13,7 @@ pub fn initialize() -> Client {
     headers.insert(
         "Authorization",
         dotenv::var("BOT_TOKEN")
-        .unwrap_or(String::new())
+        .unwrap_or_default()
         .parse()
         .unwrap(),
     );

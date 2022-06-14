@@ -2,7 +2,7 @@ use crate::schema::messages;
 
 #[derive(Queryable)]
 pub struct Message {
-    pub id: String,
+    pub id: i32,
     pub sender: String,
     pub body: String,
     pub channel: String,
@@ -12,7 +12,6 @@ pub struct Message {
 #[derive(Insertable)]
 #[table_name = "messages"]
 pub struct NewMessage<'a> {
-    pub id: &'a str,
     pub sender: &'a str,
     pub body: &'a str,
     pub channel: &'a str,

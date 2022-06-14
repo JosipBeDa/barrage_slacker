@@ -8,6 +8,5 @@ use crate::schema::channels;
 #[derive(Insertable)]
 #[table_name = "channels"]
 pub struct NewChannel<'a> {
-    pub id: &'a str,
     pub channel_name: &'a str,
 }
