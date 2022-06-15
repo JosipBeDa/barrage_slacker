@@ -1,5 +1,6 @@
 use actix_web::{web, ResponseError};
-use serde::{de::DeserializeOwned};
+use r2d2;
+use serde::de::DeserializeOwned;
 use serde_json::Value;
 use std::fmt::Display;
 
@@ -13,6 +14,7 @@ pub enum CustomError {
     SerdeError(serde_json::Error),
     SlackJsonError(serde_json::Value),
     ValidationError(String),
+    R2D2Error(r2d2::Error),
 }
 
 impl Display for CustomError {
@@ -26,6 +28,7 @@ impl Display for CustomError {
             CustomError::DieselError(e) => write!(f, "Diesel Error: {}", e),
             CustomError::BcryptError(e) => write!(f, "Bcrypt Error: {}", e),
             CustomError::ValidationError(e) => write!(f, "Validation Error: {}", e),
+            CustomError::R2D2Error(e) => write!(f, "r2d2 error: {}", e),
         }
     }
 }
@@ -50,6 +53,11 @@ impl From<diesel::result::Error> for CustomError {
 impl From<bcrypt::BcryptError> for CustomError {
     fn from(error: bcrypt::BcryptError) -> Self {
         CustomError::BcryptError(error)
+    }
+}
+impl From<r2d2::Error> for CustomError {
+    fn from(error: r2d2::Error) -> Self {
+        CustomError::R2D2Error(error)
     }
 }
 
