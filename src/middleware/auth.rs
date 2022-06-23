@@ -106,21 +106,15 @@ fn bearer_auth(data: &str) -> Result<AuthenticableUser, CustomError> {
 fn basic_auth(data: &str, req: &ServiceRequest) -> Result<AuthenticableUser, CustomError> {
     
     let decoded = base64::decode(data)?;
-
     let header = String::from(std::str::from_utf8(&decoded)?);
-
     let mut decoded = header.split(":");
   
     let username = decoded.next().unwrap_or("");
-  
     let password = decoded.next().unwrap_or("");
-
     let form = AuthData {
         username: String::from(username),
         password: String::from(password)
     };
-  
-    println!("{:?}", &form);
 
     // We will try to get app state here and unwrap it, in case the app data does not exist
     // we want to panic, there is no recovery from it missing.
@@ -128,7 +122,7 @@ fn basic_auth(data: &str, req: &ServiceRequest) -> Result<AuthenticableUser, Cus
 
     let connection = state.db_pool.get().expect("Couldn't get pool conn");
 
-    let (user, _) = AuthenticableUser::authenticate(&connection, form)?;
+    let (user, _, _) = AuthenticableUser::authenticate(&connection, form)?;
 
     Ok(user)
   }

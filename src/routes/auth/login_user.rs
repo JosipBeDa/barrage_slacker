@@ -6,7 +6,7 @@ use actix_web::web;
 pub async fn handler(
     form: web::Form<AuthData>,
     state: web::Data<AppState>,
-) -> actix_web::Result<web::Json<(AuthenticableUser, String)>, CustomError> {
+) -> actix_web::Result<web::Json<(AuthenticableUser, String, String)>, CustomError> {
     println!("form: {:?}", form);
 
     let connection = state.db_pool.get().expect("Couldn't get pool conn");

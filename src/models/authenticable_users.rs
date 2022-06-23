@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::error::CustomError;
 use crate::services::jwt::{generate, Claims};
 use bcrypt;
+use base64;
 
 #[derive(Queryable, Deserialize, Serialize, PartialEq, Debug, Clone)]
 pub struct AuthenticableUser {
@@ -17,7 +18,7 @@ impl AuthenticableUser {
     pub fn authenticate(
         connection: &PgConnection,
         form: AuthData
-    ) -> Result<(AuthenticableUser, String), CustomError> {
+    ) -> Result<(AuthenticableUser, String, String), CustomError> {
         let user = Self::find_by_username(connection, &form.username)?;
 
         let valid = bcrypt::verify(&form.password, &user.password)?;
@@ -29,7 +30,15 @@ impl AuthenticableUser {
 
         let token = user.generate_jwt();
 
-        Ok((user, token))
+        let mut user_string = String::new();
+
+        user_string.push_str(&form.username);
+        user_string.push(':');
+        user_string.push_str(&form.password);
+
+        let encoded_user = base64::encode(user_string);
+
+        Ok((user, token, encoded_user))
     }
 
     ///Create new authenticable user
