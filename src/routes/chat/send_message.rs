@@ -1,9 +1,10 @@
-use crate::state::app::AppState;
-use actix_web::web;
+use crate::error::{process_typed, CustomError};
+use crate::models::message::{FormData, NewMessage};
+use crate::models::channel::{Channel};
 use crate::models::slack_responses::MessageSent;
-use crate::error::{CustomError, process_typed};
-use crate::diesel_functions::{store_message, FormData};
-
+use crate::state::app::AppState;
+use crate::routes::conversations;
+use actix_web::web;
 
 ///Sends a message to the specified channel
 pub async fn handler(
@@ -28,11 +29,12 @@ pub async fn handler(
     let message_data: MessageSent = process_typed(res).await?;
 
     let connection = state.db_pool.get().expect("Couldn't get pool conn");
-    store_message(
-        &connection,
-        &message_data.message.bot_id,
-        &message_data.message.text,
-        &message_data.channel,
-    );
+
+    let api_slack_channels = conversations::list_conversations::handler(state).await?;
+
+    Channel::sync_api_channels(&connection, api_slack_channels.channels.clone())?;
+
+    NewMessage::create(&connection, form)?;
+
     Ok(web::Json(message_data))
 }

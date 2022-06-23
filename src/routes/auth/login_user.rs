@@ -1,6 +1,5 @@
-use crate::diesel_functions::AuthData;
 use crate::error::CustomError;
-use crate::models::authenticable_users::AuthenticableUser;
+use crate::models::authenticable_users::{AuthenticableUser, AuthData};
 use crate::state::app::AppState;
 use actix_web::web;
 
@@ -17,7 +16,7 @@ pub async fn handler(
         password: form.password.clone(),
     };
 
-    let result = AuthenticableUser::authenticate(&connection, &form.username, &form.password)?;
+    let result = AuthenticableUser::authenticate(&connection, form)?;
 
     Ok(web::Json(result))
 }

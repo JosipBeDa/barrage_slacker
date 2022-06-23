@@ -1,6 +1,5 @@
-use crate::diesel_functions::AuthData;
 use crate::error::CustomError;
-use crate::models::authenticable_users::{AuthenticableUser, NewAuthenticableUser};
+use crate::models::authenticable_users::{AuthenticableUser, NewAuthenticableUser, AuthData};
 use crate::models::user::User;
 use crate::routes::users;
 use crate::state::app::AppState;
@@ -23,7 +22,7 @@ pub async fn handler(
 
     User::sync_api_users(&connection, api_slack_users.members.clone())?;
 
-    let user = NewAuthenticableUser::create(&connection, &form.username, &form.password)?;
+    let user = NewAuthenticableUser::create(&connection, form)?;
 
     Ok(web::Json(user))
 }

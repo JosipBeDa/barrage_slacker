@@ -1,146 +1,165 @@
-// use std::future::Future;
-// use std::pin::Pin;
-// use std::task::{Context, Poll};
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-// use crate::models::auth::AuthenticableUserData;
-// use crate::state::app::AppState;
-// use actix_service::{Service, Transform};
-// use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
-// use futures::future::{ok, Ready};
-// pub struct LoggedGuard;
+use crate::models::authenticable_users::{AuthenticableUser, AuthData};
+use crate::state::app::AppState;
+use actix_service::{Service, Transform};
+use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
+use futures::future::{ok, Ready};
+use crate::error::CustomError;
+use base64;
 
-// impl<S, B> Transform<S, ServiceRequest> for LoggedGuard
-// where
-//     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
-//     S::Future: 'static,
-//     B: 'static,
-// {
-//     type Request = ServiceRequest;
-//     type Response = ServiceResponse;
-//     type Error = Error;
-//     type InitError = ();
-//     type Transform = LoggedGuardMiddleware<S>;
-//     type Future = Ready<Result<Self::Transform, Self::InitError>>;
+pub struct LoggedGuard;
 
-//     fn new_transform(&self, service: S) -> Self::Future {
-//         ok(LoggedGuardMiddleware { service })
-//     }
-// }
+impl<S> Transform<S, ServiceRequest> for LoggedGuard
+where
+    S: Service<ServiceRequest, Response = ServiceResponse, Error = Error>,
+    S::Future: 'static,
+{
+    type Response = ServiceResponse;
+    type Error = Error;
+    type InitError = ();
+    type Transform = LoggedGuardMiddleware<S>;
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
-// pub struct LoggedGuardMiddleware<S> {
-//     service: S,
-// }
+    fn new_transform(&self, service: S) -> Self::Future {
+        ok(LoggedGuardMiddleware { service })
+    }
+}
 
-// impl<S, B> Service<ServiceRequest> for LoggedGuardMiddleware<S>
-// where
-//     S: Service<ServiceRequest, Response = ServiceResponse, Error = Error>,
-//     S::Future: 'static,
-//     B: 'static,
-// {
-//     type Response = ServiceResponse;
-//     type Error = Error;
-//     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
+pub struct LoggedGuardMiddleware<S> {
+    service: S,
+}
 
-//     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-//         self.service.poll_ready(cx)
-//     }
+impl<S> Service<ServiceRequest> for LoggedGuardMiddleware<S>
+where
+    S: Service<ServiceRequest, Response = ServiceResponse, Error = Error>,
+    S::Future: 'static,
+{
+    type Response = ServiceResponse;
+    type Error = Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>>>>;
 
-//     fn call(&mut self, req: ServiceRequest) -> Self::Future {
-//         match is_logged(&req) {
-//             Ok(auth) => {
-//                 req.extensions_mut().insert(auth);
-//                 let fut = self.service.call(req);
-//                 Box::pin(async move {
-//                     let res = fut.await?;
-//                     Ok(res)
-//                 })
-//             }
-//             Err(e) => {
-//                 println!("Got error: {}", e);
-//                 Box::pin(async move {
-//                     Ok(ServiceResponse::new(
-//                         req.into_parts().0,
-//                         actix_web::HttpResponse::Unauthorized().body(e),
-//                     ))
-//                 })
-//             }
-//         }
-//     }
-// }
+    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.service.poll_ready(cx)
+    }
 
-// /// Check if the user making the request is logged in
-// fn is_logged(req: &ServiceRequest) -> Result<crate::models::user::User, String> {
-//     let header = match &req.headers().get("Authorization") {
-//         Some(head) => match head.to_str().ok() {
-//             Some(val) => val.to_string(),
-//             None => return Err(String::from("Couldn't parse the header")),
-//         },
-//         None => return Err(String::from("Couldn't retrieve header")),
-//     };
-//     let mut split = header.split_whitespace();
-//     let auth_type = split.next();
-//     if Some("Bearer") == auth_type {
-//         bearer_auth(match split.next() {
-//             Some(v) => v,
-//             None => "",
-//         })
-//     } else if Some("Basic") == auth_type {
-//         basic_auth(
-//             match split.next() {
-//                 Some(v) => v,
-//                 None => "",
-//             },
-//             req,
-//         )
-//     } else {
-//         Err(String::from("Not valid authentication method"))
-//     }
-// }
+    fn call(&self, req: ServiceRequest) -> Self::Future {
+        match is_logged(&req) {
+            Ok(auth) => {
+                req.extensions_mut().insert(auth);
+                let fut = self.service.call(req);
+                Box::pin(async move {
+                    let res = fut.await?;
+                    Ok(res)
+                })
+            }
+            Err(e) => {
+                println!("Got error: {}", e);
+                Box::pin(async move {
+                    Ok(ServiceResponse::new(
+                        req.into_parts().0,
+                        actix_web::HttpResponse::Unauthorized().body(e.to_string()),
+                    ))
+                })
+            }
+        }
+    }
+}
 
-// /// Handle JWT authentication token
-// fn bearer_auth(data: &str) -> Result<crate::models::user::User, String> {
-//     match crate::services::jwt::verify(String::from(data)) {
-//         Ok(user) => Ok(user),
-//         Err(e) => {
-//             println!("Got error from jwt: {:?}", e);
-//             Err(String::from("Something wrong with the signature"))
-//         }
-//     }
-// }
+/// Check if the user making the request is logged in
+fn is_logged(req: &ServiceRequest) -> Result<AuthenticableUser, CustomError> {
+    let header = match &req.headers().get("Authorization") {
+        Some(head) => match head.to_str().ok() {
+            Some(val) => val.to_string(),
+            None => return Err(CustomError::AuthenticationError(String::from("Couldn't parse the header"))),
+        },
+        None => return Err(CustomError::AuthenticationError(String::from("Couldn't retrieve header"))),
+    };
+    let mut split = header.split_whitespace();
+    let auth_type = split.next();
+    if Some("Bearer") == auth_type {
+        bearer_auth(match split.next() {
+            Some(v) => v,
+            None => "",
+        })
+    } else if Some("Basic") == auth_type {
+        basic_auth(
+            match split.next() {
+                Some(v) => v,
+                None => "",
+            },
+            req,
+        )
+    } else {
+        Err(CustomError::AuthenticationError(String::from("Not valid authentication method")))
+    }
+}
 
-// /// Handle basic auth authentication token
-// fn basic_auth(data: &str, req: &ServiceRequest) -> Result<crate::models::user::User, String> {
-//     let decoded = match base64::decode(data) {
-//       Ok(d) => match std::str::from_utf8(&d[..]) {
-//         Ok(s) => String::from(s),
-//         Err(_) => {
-//           return Err(String::from("Could not parse the authentication header"));
-//         }
-//       },
-//       Err(_) => return Err(String::from("Could not decode base64 header")),
-//     };
+/// Handle JWT authentication token
+fn bearer_auth(data: &str) -> Result<AuthenticableUser, CustomError> {
+    match crate::services::jwt::verify(String::from(data)) {
+        Ok(user) => Ok(user),
+        Err(e) => {
+            println!("Got error from jwt: {:?}", e);
+            Err(CustomError::AuthenticationError(String::from("Something wrong with the signature")))
+        }
+    }
+}
+
+/// Handle basic auth authentication token
+fn basic_auth(data: &str, req: &ServiceRequest) -> Result<AuthenticableUser, CustomError> {
+    
+    let decoded = base64::decode(data)?;
+
+    let header = String::from(std::str::from_utf8(&decoded)?);
+
+
+    
+    // let decoded = match base64::decode(data) {
+    //   Ok(d) => match std::str::from_utf8(&d[..]) {
+    //     Ok(s) => String::from(s),
+    //     Err(_) => {
+    //       return Err(String::from("Could not parse the authentication header"));
+    //     }
+    //   },
+    //   Err(_) => return Err(String::from("Could not decode base64 header")),
+    // };
   
-//     let mut decoded = decoded.split(":");
+    let mut decoded = header.split(":");
   
-//     let email = match decoded.next() {
-//       Some(v) => v,
-//       None => "",
-//     };
+    let username = match decoded.next() {
+      Some(v) => v,
+      None => "",
+    };
   
-//     let password = match decoded.next() {
-//       Some(v) => v,
-//       None => "",
-//     };
+    let password = match decoded.next() {
+      Some(v) => v,
+      None => "",
+    };
+
+    let form = AuthData {
+        username: String::from(username),
+        password: String::from(password)
+    };
   
-//     // We will try to get app state here and unwrap it, in case the app data does not exist
-//     // we want to panic, there is no recovery from it missing.
-//     let state = req.app_data::<AppState>().unwrap();
-//     match AuthenticableUser::authenticate(&state.get_connection(), &email, &password) {
-//       Ok((user, _)) => Ok(user),
-//       Err(e) => {
-//         println!("Basic auth error: {:?}", e);
+    // We will try to get app state here and unwrap it, in case the app data does not exist
+    // we want to panic, there is no recovery from it missing.
+    let state = req.app_data::<AppState>().unwrap();
+
+    let connection = state.db_pool.get().expect("Couldn't get pool conn");
+
+    let (user, _) = AuthenticableUser::authenticate(&connection, form)?;
+
+    Ok(user)
+    // {
+    //   Ok((user, _)) => Ok(user),
+    //   Err(e) => {
+    //     println!("Basic auth error: {:?}", e);
   
-//         Err(String::from("Invalid credentials for basic auth"))
-//       }
-//     }
-//   }
+    //     Err(String::from("Invalid credentials for basic auth"))
+    //   }
+    // }
+
+  }

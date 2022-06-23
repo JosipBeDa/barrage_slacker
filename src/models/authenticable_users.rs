@@ -2,10 +2,9 @@ use crate::models::user::User;
 use crate::schema::authenticable_users;
 use diesel::{ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
 use serde::{Deserialize, Serialize};
-// use diesel::prelude::*;
 use crate::error::CustomError;
 use crate::services::jwt::{generate, Claims};
-use bcrypt::{hash, verify, DEFAULT_COST};
+use bcrypt;
 
 #[derive(Queryable, Deserialize, Serialize, PartialEq, Debug, Clone)]
 pub struct AuthenticableUser {
@@ -17,14 +16,13 @@ pub struct AuthenticableUser {
 impl AuthenticableUser {
     pub fn authenticate(
         connection: &PgConnection,
-        username: &str,
-        password: &str,
+        form: AuthData
     ) -> Result<(AuthenticableUser, String), CustomError> {
-        let user = Self::find_by_username(connection, username)?;
+        let user = Self::find_by_username(connection, &form.username)?;
 
-        let valid = verify(password, &user.password)?;
+        let valid = bcrypt::verify(&form.password, &user.password)?;
         if !valid {
-            return Err(CustomError::ValidationError(String::from(
+            return Err(CustomError::AuthenticationError(String::from(
                 "Invalid username or password",
             )));
         }
@@ -35,12 +33,12 @@ impl AuthenticableUser {
     }
 
     ///Create new authenticable user
-    pub fn new(username: String, hashed_password: String) -> NewAuthenticableUser {
-        NewAuthenticableUser {
-            username,
-            password: hashed_password,
-        }
-    }
+    // pub fn new(username: String, hashed_password: String) -> NewAuthenticableUser {
+    //     NewAuthenticableUser {
+    //         username,
+    //         password: hashed_password,
+    //     }
+    // }
 
     /// Fetch all users from the database
     pub fn all(connection: &PgConnection) -> Result<Vec<Self>, CustomError> {
@@ -88,12 +86,11 @@ pub struct NewAuthenticableUser {
 impl NewAuthenticableUser {
     /// Create a new user with username and password
     /// Password will be automatically hashed
-    pub fn create<'a>(
+    pub fn create(
         connection: &PgConnection,
-        username: &'a str,
-        password: &'a str,
+        form: AuthData
     ) -> Result<AuthenticableUser, CustomError> {
-        let hashed_password = hash(&password, DEFAULT_COST)?;
+        let hashed_password = bcrypt::hash(&form.password, bcrypt::DEFAULT_COST)?;
         //  {
         //     Ok(hashed) => hashed,
         //     Err(e) => {
@@ -101,24 +98,24 @@ impl NewAuthenticableUser {
         //         return Err(CustomError::BcryptError(e));
         //     }
         // };
-        match AuthenticableUser::find_by_username(connection, &username) {
+        match AuthenticableUser::find_by_username(connection, &form.username) {
             Ok(_user) => {
-                return Err(CustomError::ValidationError(String::from(
+                return Err(CustomError::AuthenticationError(String::from(
                     "User already exists",
                 )));
             }
             _ => (),
         }
-        match User::find_by_username(connection, &username) {
+        match User::find_by_username(connection, &form.username) {
             Ok(_user) => (),
             Err(_e) => {
-                return Err(CustomError::ValidationError(String::from(
+                return Err(CustomError::AuthenticationError(String::from(
                     "User does not exists in slack workspace",
                 )));
             }
         }
         let values = Self {
-            username: String::from(username),
+            username: String::from(&form.username),
             password: hashed_password.to_string(),
         };
         diesel::insert_into(authenticable_users::table)
@@ -126,4 +123,11 @@ impl NewAuthenticableUser {
             .get_result(connection)
             .map_err(CustomError::from)
     }
+}
+
+/// A struct containing data we need for auth
+#[derive(Deserialize, Serialize, Debug)]
+pub struct AuthData {
+    pub username: String,
+    pub password: String,
 }

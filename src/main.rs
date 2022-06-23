@@ -12,7 +12,6 @@ pub mod services;
 pub mod models;
 pub mod schema;
 pub mod error;
-pub mod diesel_functions;
 
 use actix_web::middleware::Logger;
 use actix_web::{web::Data, App, HttpServer};

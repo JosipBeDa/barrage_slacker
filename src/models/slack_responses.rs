@@ -20,7 +20,7 @@ pub struct SlackMessage {
 }
 
 // conversations.list
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone,)]
 pub struct ChannelsList {
     pub channels: Vec<SlackChannel>,
     pub ok: bool,
@@ -34,7 +34,7 @@ pub struct SingleChannel {
 }
 
 // channel objects in the 'channels' field used in conversations.list and conversations.info?channel={channel_id}
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SlackChannel {
     pub created: usize,
     pub creator: String,
@@ -47,7 +47,7 @@ pub struct SlackChannel {
     pub topic: TopicPurpose,
 }
 // topic and purpose fields in SlackChannel
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct TopicPurpose {
     pub creator: String,
     pub last_set: usize,

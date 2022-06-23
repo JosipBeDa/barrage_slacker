@@ -13,8 +13,10 @@ pub enum CustomError {
     ReqwestError(reqwest::Error),
     SerdeError(serde_json::Error),
     SlackJsonError(serde_json::Value),
-    ValidationError(String),
+    AuthenticationError(String),
     R2D2Error(r2d2::Error),
+    Base64Error(base64::DecodeError),
+    UTF8Error(std::str::Utf8Error)
 }
 
 impl Display for CustomError {
@@ -25,10 +27,12 @@ impl Display for CustomError {
             }
             CustomError::SlackJsonError(e) => write!(f, "Slack JSON error: {}", e),
             CustomError::SerdeError(e) => write!(f, "Serde error: {}", e),
-            CustomError::DieselError(e) => write!(f, "Diesel Error: {}", e),
-            CustomError::BcryptError(e) => write!(f, "Bcrypt Error: {}", e),
-            CustomError::ValidationError(e) => write!(f, "Validation Error: {}", e),
+            CustomError::DieselError(e) => write!(f, "Diesel error: {}", e),
+            CustomError::BcryptError(e) => write!(f, "Bcrypt error: {}", e),
+            CustomError::AuthenticationError(e) => write!(f, "Authentication error: {}", e),
             CustomError::R2D2Error(e) => write!(f, "r2d2 error: {}", e),
+            CustomError::Base64Error(e) => write!(f, "base64 error: {}", e),
+            CustomError::UTF8Error(e) => write!(f, "Utf8 error: {}", e)
         }
     }
 }
@@ -58,6 +62,16 @@ impl From<bcrypt::BcryptError> for CustomError {
 impl From<r2d2::Error> for CustomError {
     fn from(error: r2d2::Error) -> Self {
         CustomError::R2D2Error(error)
+    }
+}
+impl From<base64::DecodeError> for CustomError {
+    fn from(error: base64::DecodeError) -> Self {
+        CustomError::Base64Error(error)
+    }
+}
+impl From<std::str::Utf8Error> for CustomError {
+    fn from(error: std::str::Utf8Error) -> Self {
+        CustomError::UTF8Error(error)
     }
 }
 
