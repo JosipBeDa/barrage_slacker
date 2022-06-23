@@ -16,7 +16,8 @@ pub enum CustomError {
     AuthenticationError(String),
     R2D2Error(r2d2::Error),
     Base64Error(base64::DecodeError),
-    UTF8Error(std::str::Utf8Error)
+    UTF8Error(std::str::Utf8Error),
+    JWTError(jsonwebtoken::errors::Error)
 }
 
 impl Display for CustomError {
@@ -32,7 +33,8 @@ impl Display for CustomError {
             CustomError::AuthenticationError(e) => write!(f, "Authentication error: {}", e),
             CustomError::R2D2Error(e) => write!(f, "r2d2 error: {}", e),
             CustomError::Base64Error(e) => write!(f, "base64 error: {}", e),
-            CustomError::UTF8Error(e) => write!(f, "Utf8 error: {}", e)
+            CustomError::UTF8Error(e) => write!(f, "Utf8 error: {}", e),
+            CustomError::JWTError(e) => write!(f, "JWT error: {}", e)
         }
     }
 }
@@ -72,6 +74,11 @@ impl From<base64::DecodeError> for CustomError {
 impl From<std::str::Utf8Error> for CustomError {
     fn from(error: std::str::Utf8Error) -> Self {
         CustomError::UTF8Error(error)
+    }
+}
+impl From<jsonwebtoken::errors::Error> for CustomError {
+    fn from(error: jsonwebtoken::errors::Error) -> Self {
+        CustomError::JWTError(error)
     }
 }
 

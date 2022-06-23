@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use jsonwebtoken;
 use crate::models::authenticable_users::AuthenticableUser;
+use crate::error::CustomError;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct Claims {
@@ -41,7 +42,7 @@ pub fn generate(user: &AuthenticableUser) -> String {
 }
 
 /// Verify given token and return user if its okay
-pub fn verify(token: String) -> Result<AuthenticableUser, jsonwebtoken::errors::Error> {
+pub fn verify(token: String) -> Result<AuthenticableUser, CustomError> {
   let secret = match dotenv::var("JWT_SECRET") {
     Ok(s) => s,
     Err(_) => "".to_string(),
