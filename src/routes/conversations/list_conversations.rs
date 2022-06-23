@@ -5,7 +5,7 @@ use crate::error::{process_typed, CustomError};
 
 pub async fn handler(
     state: web::Data<AppState>,
-) -> Result<web::Json<ChannelsList> /*<Value>*/, CustomError> {
+) -> Result<web::Json<ChannelsList>, CustomError> {
     let res = state
         .client
         .get("https://slack.com/api/conversations.list")

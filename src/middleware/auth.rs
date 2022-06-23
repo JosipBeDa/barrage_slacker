@@ -5,7 +5,7 @@ use std::task::{Context, Poll};
 use crate::models::authenticable_users::{AuthenticableUser, AuthData};
 use crate::state::app::AppState;
 use actix_service::{Service, Transform};
-use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage};
+use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpMessage, web};
 use futures::future::{ok, Ready};
 use crate::error::CustomError;
 use base64;
@@ -80,16 +80,10 @@ fn is_logged(req: &ServiceRequest) -> Result<AuthenticableUser, CustomError> {
     let mut split = header.split_whitespace();
     let auth_type = split.next();
     if Some("Bearer") == auth_type {
-        bearer_auth(match split.next() {
-            Some(v) => v,
-            None => "",
-        })
+        bearer_auth(split.next().unwrap_or(""))
     } else if Some("Basic") == auth_type {
         basic_auth(
-            match split.next() {
-                Some(v) => v,
-                None => "",
-            },
+            split.next().unwrap_or(""),
             req,
         )
     } else {
@@ -115,51 +109,26 @@ fn basic_auth(data: &str, req: &ServiceRequest) -> Result<AuthenticableUser, Cus
 
     let header = String::from(std::str::from_utf8(&decoded)?);
 
-
-    
-    // let decoded = match base64::decode(data) {
-    //   Ok(d) => match std::str::from_utf8(&d[..]) {
-    //     Ok(s) => String::from(s),
-    //     Err(_) => {
-    //       return Err(String::from("Could not parse the authentication header"));
-    //     }
-    //   },
-    //   Err(_) => return Err(String::from("Could not decode base64 header")),
-    // };
-  
     let mut decoded = header.split(":");
   
-    let username = match decoded.next() {
-      Some(v) => v,
-      None => "",
-    };
+    let username = decoded.next().unwrap_or("");
   
-    let password = match decoded.next() {
-      Some(v) => v,
-      None => "",
-    };
+    let password = decoded.next().unwrap_or("");
 
     let form = AuthData {
         username: String::from(username),
         password: String::from(password)
     };
   
+    println!("{:?}", &form);
+
     // We will try to get app state here and unwrap it, in case the app data does not exist
     // we want to panic, there is no recovery from it missing.
-    let state = req.app_data::<AppState>().unwrap();
+    let state = req.app_data::<web::Data<AppState>>().unwrap();
 
     let connection = state.db_pool.get().expect("Couldn't get pool conn");
 
     let (user, _) = AuthenticableUser::authenticate(&connection, form)?;
 
     Ok(user)
-    // {
-    //   Ok((user, _)) => Ok(user),
-    //   Err(e) => {
-    //     println!("Basic auth error: {:?}", e);
-  
-    //     Err(String::from("Invalid credentials for basic auth"))
-    //   }
-    // }
-
   }
